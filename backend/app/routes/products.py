@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import SessionLocal
@@ -9,6 +9,7 @@ from app.schemas.comparison import (
     BestDeal,
     ProductComparisonResponse
 )
+
 
 router = APIRouter(
     prefix="/products",
@@ -44,6 +45,28 @@ def create_product(
 @router.get("/", response_model=list[ProductResponse])
 def get_products(db: Session = Depends(get_db)):
     return db.query(Product).all()
+
+
+@router.get("/search", response_model=list[ProductResponse])
+def search_products(
+    q: str,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    if not q.strip():
+        return []
+
+    limit = min(limit, 50)
+
+    products = (
+        db.query(Product)
+        .filter(Product.name.ilike(f"%{q.strip()}%"))
+        .limit(limit)
+        .all()
+    )
+
+    return products
+
 
 @router.get(
     "/{product_id}/compare",
