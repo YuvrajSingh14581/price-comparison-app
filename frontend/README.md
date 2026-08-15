@@ -1,75 +1,83 @@
-# React + TypeScript + Vite
+# Bill — Price Comparison App (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + Vite + TypeScript frontend for a tool that finds the cheapest way to pay
+for something. This is the **frontend only** — there is no backend in this repo.
+All data (sources, cards, saved comparisons, sign-in) is mocked/seeded on the
+client, described below.
 
-Currently, two official plugins are available:
+## Running it
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Then open the printed local URL (usually `http://localhost:5173`).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+npm run build     # type-checks and builds to dist/
+npm run preview   # serves the production build locally
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## What's implemented
+
+- **Email sign-in** — `src/components/SignIn.tsx` validates the email format
+  before continuing. The signed-in email is kept in `AuthContext` and persisted
+  to `localStorage` so a refresh doesn't sign you out.
+- **Search across mocked sources** — typing a query (or tapping a quick action)
+  runs a simulated search (`src/data/mockData.ts` + `src/data/compare.ts`) that
+  returns 3–4 normalized deals from different mocked sources (offer / coupon /
+  cashback), with the cheapest one clearly badged.
+- **"Best way to pay" line** — `computeBestWayToPay()` in `src/data/compare.ts`
+  picks the cheapest source, then checks whether paying with one of the user's
+  seeded cards (`USER_CARDS`) would earn back enough to beat it. Whichever wins
+  is shown as the single recommended way to pay.
+- **Save a comparison** — saved comparisons are stored in `SavedContext`, keyed
+  in `localStorage` **by the signed-in user's email** (`bill.saved.<email>`),
+  so switching accounts shows a different, isolated list. Because there's no
+  server here, this simulates ownership rather than enforcing it — a real
+  backend would need to check the authenticated user server-side too.
+- **Validation, loading, error, empty states** — the chat input rejects empty
+  or too-short queries; the analyzing/finding/comparing steps show while a
+  search is "in flight" (`AnalyzingSteps.tsx`); a search containing the word
+  "fail" or "error" simulates a failed request with a retry button, so you can
+  see the error state on demand; an empty deal list shows an empty state.
+- **Debounced, cancellable search** — new searches debounce briefly before
+  "starting", and every step of the simulated request checks a request id
+  against the latest one before touching state, so an older, superseded
+  search can never overwrite a newer result (`requestIdRef` in `App.tsx`).
+- **Price-drop indicator** — `src/data/priceHistory.ts` remembers the best
+  price found for each query (per device) and shows a ↑/↓ delta the next time
+  you check the same query.
+- **Voice input** — the mic button in `ChatInput.tsx` uses the browser's
+  `SpeechRecognition` API where available and falls back gracefully (with a
+  message) where it isn't.
+- **Skeleton loaders** for the deal list while a search is running.
+
+## Screens
+
+- **Home** — greeting, your tracked bills strip, quick actions, chat input.
+- **Conversation** — your query, the analyzing steps, then results: deal
+  cards with the cheapest one badged, the best-way-to-pay summary, and a save
+  button. A follow-up input stays at the bottom.
+- **Saved** — reachable from "Your cards" or the menu button; lists only the
+  signed-in user's saved comparisons, with a real empty state.
+
+## Project structure
 
 ```
+src/
+  components/     UI components (presentational, mostly stateless)
+  state/          AuthContext, SavedContext (React context + localStorage)
+  data/           mock dataset, comparison/reward logic, price history
+  styles/         tokens.css (design tokens) + global.css
+  types.ts        shared TypeScript types
+```
+
+## Known limitations (frontend-only scope)
+
+- There's no real backend, database, or authentication — sign-in and saved
+  data are simulated in `localStorage` for demo purposes.
+- Search results are deterministically generated from the query text (same
+  query → same numbers) rather than coming from real integrations, per the
+  assignment brief.
