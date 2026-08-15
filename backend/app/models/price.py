@@ -65,3 +65,8 @@ class Price(Base):
     store: Mapped["Store"] = relationship(
         back_populates="prices"
     )
+    history = relationship(
+    "PriceHistory",
+    back_populates="price_record",
+    cascade="all, delete-orphan"
+)
