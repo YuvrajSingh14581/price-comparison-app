@@ -4,8 +4,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
-class Product(Base):
-    __tablename__ = "products"
+class Store(Base):
+    __tablename__ = "stores"
 
     id: Mapped[int] = mapped_column(
         Integer,
@@ -14,16 +14,17 @@ class Product(Base):
     )
 
     name: Mapped[str] = mapped_column(
-        String(255),
+        String(100),
+        unique=True,
         nullable=False
     )
 
-    description: Mapped[str | None] = mapped_column(
-        String(1000),
-        nullable=True
+    website_url: Mapped[str] = mapped_column(
+        String(500),
+        nullable=False
     )
 
     prices: Mapped[list["Price"]] = relationship(
-        back_populates="product",
+        back_populates="store",
         cascade="all, delete-orphan"
     )
